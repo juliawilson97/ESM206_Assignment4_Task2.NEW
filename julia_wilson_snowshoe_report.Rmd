@@ -1,0 +1,284 @@
+---
+title: "Assignment 4 Task 2"
+author: "Julia Wilson"
+date: "11/4/2021"
+output: 
+  html_document: 
+    theme: cerulean
+    toc: yes
+---
+
+### Introduction
+This study explores snowshoe hare populations from 1998 - 2012 at the Bonanza Creek Experimental Forest in Alaska. Snowshoe hares are a 'keystone' species and experience population size fluctuations over 8 - 11 year time periods. Historically, landscape scale comparisons of hare populations in Alaska have been limited to qualitative studies. This is rare quantitative study that uses a capture - recapture study to analyze hare densities. 
+
+### Data & Analysis 
+In this task we wrangle, analyze, and visualize data about snowshoe hare populations. The data is used to evaluate snowshoe hare populations over 13 years and to compare female and male weights in three different sites. Finally, it is used to analyze a potential relationship between hind foot length (mm) and weights (g).
+
+**Data Citation:** Kielland, K., F.S. Chapin, R.W. Ruess, and Bonanza Creek LTER. 2017. Snowshoe hare physical data in Bonanza Creek Experimental Forest: 1999-Present ver 22. Environmental Data Initiative. https://doi.org/10.6073/pasta/03dce4856d79b91557d8e6ce2cbcdc14
+
+```{r message = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+# Attach Packages
+library(here)
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(kableExtra)
+library(effsize)
+```
+
+```{r}
+# Read in Bonanza Hares data as hare_data
+hare_data <- read_csv(here("data", "bonanza_hares.csv"))
+```
+
+## Section 1: Juvenile Hare Trap Counts
+
+```{r}
+# Add date column that only adds year 
+juvenile_data <- hare_data %>% 
+  mutate(date = mdy(date)) %>% 
+  mutate(year = year(date)) %>% 
+  filter(age == "j") %>% 
+  count(year)
+```
+
+
+```{r}
+# Data visualization of total number of juvenile hare trappings each year
+ggplot(data = juvenile_data, 
+       aes(x = year, y = n)) +
+  geom_bar(stat = "identity", fill = "goldenrod3") + 
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  scale_x_continuous(breaks = c(1998, 2000, 2002, 2004, 2006, 2008, 2010, 2012)) +
+  labs(x = "Year",
+       y = "Count (#)",
+       title = "Total Juvenile Hare Count by Year (1998 - 2012) (WILSON)",
+       caption = "Data Source: Kielland, K., F.S. Chapin, R.W. Ruess, and Bonanza reek LTER") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+```
+
+**Figure 1: Total Juvenile Hare Trappings by Year** Visualizes the count of juvenile hare trappings each year from 1998 - 2012. 
+
+```{r}
+# Summary table to analyze takeaways and trends of juvenile hare trappings
+juvenile_summary <- juvenile_data %>%
+  summarize(mean = mean(n, na.rm = TRUE),
+            median = median(n, na.rm = TRUE),
+            min = min(n, na.rm = TRUE),
+            max = max(n, na.rm = TRUE)) %>% 
+  kable(caption = "Table 1: Juvenile Hare Count Summary Statistics",
+        col.names = c("Mean",
+                      "Median",
+                      "Min",
+                      "Max")) %>% 
+  kable_minimal()
+
+
+juvenile_summary
+```
+
+**Table 1: Juvenile Hare Count Summary Statistics** 
+This table compares the mean, median, min, and max of male and female Juvenile Hares at three sites in Bonanza Creek; Bonanza Mature, Bonanza Riparian, and Bonrip. The data spans the time period 1998 - 2012.  
+
+**Takeaways:** The minimum count of juvenile hare trappings was reported in 2012 at at a count of 2. The maximum count reported was 126 in 1999. The overall mean of juvenile hares trapped was 31.5 and the median was 18.5. Overall, there is a reduction in count of juvenile hare trappings. To standardize the juvenile hare population in future analyses, the number of days and number of traps in the study need to be consistent every year. 
+
+## Section 2: Juvenile Hare Weights
+
+```{r}
+# Wrangle the data
+juvenile_weight <- hare_data %>% 
+  filter(age == "j") %>% 
+  mutate(grid = case_when(
+    grid == "bonbs" ~ "Bonanza Riparian",
+    grid == "bonmat" ~ "Bonanza Mature",
+    grid == "bonrip" ~ "Bonrip")) %>% 
+  mutate(sex = case_when(
+    sex == "f" ~ "Female",
+    sex == "m" ~ "Male"))
+```
+
+
+```{r}
+# Visualize juvenile weights by site and sex 
+ggplot(data = juvenile_weight,
+       aes(x = weight, color = grid, fill = grid)) +
+  geom_histogram(show.legend = "None") +
+  facet_grid(sex ~ grid) + 
+  labs(x = "Weight (g)",
+       y = "Count",
+       color = "Site",
+       title = "Juvenile Hare Weight by Sex and Site (WILSON)",
+       caption = "Data Source: Kielland, K., F.S. Chapin, R.W. Ruess, and Bonanza Creek LTER") + 
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.title = element_text(face = "bold"),
+        plot.caption = element_text(hjust = 1))
+```
+
+**Figure 3: Juvenile Hare Weight (g) by Sex and Site** Compares the weight (g) of female and male juvenile hares at three sites in Bonanza Creek; Bonanza Mature, Bonanza Riparian, and Bonrip.
+
+```{r}
+# Insert table to show summary values by sex and site
+juvenile_weight_summary <- juvenile_weight %>% 
+  group_by(grid, sex) %>% 
+  summarize(mean = mean(weight, na.rm = TRUE),
+            median = median(weight, na.rm = TRUE),
+            max = max(weight, na.rm = TRUE),
+            min = min(weight, na.rm = TRUE),
+            sd = sd(weight, na.rm = TRUE),
+            sample_size = n()) %>% 
+  kable(caption = "Table 2: Juvenile Weight Summary Statistics",
+        col.names = c("Site",
+                      "Sex",
+                      "Mean (g)",
+                      "Median (g)",
+                      "Max (g)",
+                      "Min (g)",
+                      "Standard Deviation (g)",
+                      "Sample Size"),
+        digits = 1) %>% 
+  kable_minimal(html_font = "Georgia", font_size = 12, full_width = FALSE) %>% 
+  kable_material(c("striped", "hover", "condensed"))
+  
+
+juvenile_weight_summary
+```
+
+**Table 2: Juvenile Weight Summary Statistics**
+This table compares the mean, median, and sample size of male and female Juvenile Hare weights (g) at three sites in Bonanza Creek; Bonanza Mature, Bonanza Riparian, and Bonrip. 
+
+## Section 3: Juvenile Weight Comparison 
+
+```{r}
+# Insert table to visualize summary data by sex
+juvenile_weight_summary <- juvenile_weight %>% 
+  group_by(sex) %>% 
+  summarize(mean = mean(weight, na.rm = TRUE),
+            median = median(weight, na.rm = TRUE),
+            max = max(weight, na.rm = TRUE),
+            min = min(weight, na.rm = TRUE),
+            sd = sd(weight, na.rm = TRUE),
+            sample_size = n()) %>% 
+  kable(caption = "Table 3: Juvenile Weight Comparison Summary Statistics",
+        col.names = c("Sex",
+                      "Mean (g)",
+                      "Median (g)",
+                      "Max (g)",
+                      "Min (g)",
+                      "Standard Deviation (g)",
+                      "Sample Size"),
+        digits = 1) %>% 
+  kable_minimal(html_font = "Georgia", font_size = 12, full_width = FALSE) %>% 
+  kable_material(c("striped", "hover", "condensed"))
+  
+
+juvenile_weight_summary
+```
+
+**Table 3: Juvenile Weight Comparison Summary Statistics** 
+This table compares the mean, median, and sample size of male and female Juvenile Hare weights (g). 
+
+```{r}
+# Create vector for female weights
+female_weight <- juvenile_weight %>% 
+  filter(sex == "Female") %>% 
+  drop_na(weight) %>% 
+  pull(weight)
+
+# Create vector for male weights
+male_weight <- juvenile_weight %>% 
+  filter(sex == "Male") %>% 
+  drop_na(weight) %>% 
+  pull(weight)
+
+# Run t test for female and male weights to find the true difference in means
+weight_test <- t.test(male_weight, female_weight)
+weight_test
+
+# Run Cohen test to find confidence interval 
+weight_cohen <- cohen.d(female_weight, male_weight)
+weight_cohen
+```
+
+**Analysis:** The actual difference in mean weights between female and males is 90.5 (g), with a small effect size (Cohen's d = -0.29). The minimal increase in weight may not represent a significant difference in weight, despite statistical significance (t(`r weight_test$parameter`) = `r weight_test$statistic` p-value: `r weight_test$p.value`, n = `r count(juvenile_weight)`). 
+
+**ORIGINAL**
+
+This small effect size indicates a smaller difference between the two means. The two groups means are separated by 0.29 standard deviations. 
+
+However, the t-test has a p-value of `r weight_test$p.value`. This means that if the samples were drawn from populations with the same mean, the probability of taking two random samples with means at least as different as the sample means found by random chance is 0.7%. This takes our small Cohen's d of -0.29 and sample size of 378 into account. 
+
+Given the low probability of randomly selecting to random samples with means at least as different as the sample means found by random chance, we can reject the null hypothesis. 
+
+```{r, include = FALSE}
+# Cross reference histogram to explore assumption of t-test
+ggplot(data = juvenile_weight, aes(x = weight)) + 
+  geom_histogram(color = "red", fill = "white", bins = 7) +
+  facet_wrap(~sex) 
+
+ggplot(data = juvenile_weight, aes(sample = weight)) +
+  geom_qq() +
+  facet_wrap(~sex)
+```
+
+## Section 4: Juvenile Weight & Hind Foot Length
+
+```{r}
+juvenile_foot <- hare_data %>% 
+  filter(age == "j")
+```
+
+
+```{r}
+# Visualize data comparing juvenile weight & hind foot length
+ggplot(data = juvenile_foot, aes(x = hindft, y = weight)) + 
+  geom_jitter() +
+  labs(x = "Hind Foot Length (mm)",
+       y = "Weight (g)",
+       title = "Juvenile Weight and Hind Foot Length Comparison (WILSON)",
+       caption = "Data Source: Kielland, K., F.S. Chapin, R.W. Ruess, and Bonanza Creek LTER") +
+  geom_smooth(method = "lm") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.title = element_text(face = "bold"))
+```
+**Figure 4: Juvenile Weight and Hind Food Length Comparison** Compares the relationship between Hind Foot Length (mm) and Weight (g) for juvenile snowshoe hares recorded from 1998 - 2012 at Bonanza Creek. 
+
+```{r}
+# Linear model stored as juveinle_foot
+hfoot_weight_lm <- lm(weight ~ hindft, data = juvenile_foot)
+
+# Return complete overview
+summary(hfoot_weight_lm)
+
+# Use broom::tidy() function to see the model outputs in a nice format
+hfoot_weight_tidy <- broom::tidy(hfoot_weight_lm)
+
+hfoot_weight_lm_out <- broom::glance(hfoot_weight_lm)
+
+# Find Pearson's r value 
+hfoot_weight_cor <- cor.test(juvenile_foot$weight, juvenile_foot$hindft)
+hfoot_weight_cor
+```
+
+**Linear Regression Analysis:** 
+The **slope** is `r round(hfoot_weight_lm$coefficient[2], 2)` (g/mm). On average we expect weight to increase by `r round(hfoot_weight_lm$coefficient[2], 2)` for every 1 mm increase in hind foot length. The **y-intercept** is `r round(hfoot_weight_lm$coefficient[1], 1)` (g). For a juvenile hare with a 0 mm hind foot length, we expect an average hare mass of `r round(hfoot_weight_lm$coefficient[1], 1)` (g). 
+
+The **R^2 value** of `r round(hfoot_weight_lm_out$r.squared, 1)` means that 30% of the variance in hare weight is explained by hind foot length. The **Pearson's r Correlation** is `r round(hfoot_weight_cor$estimate, 1)`. This value represents a moderate correlation between the change in weight and hind foot length. 
+
+Despite the regression line illustrating a positive correlation, the R^2 and Pearson's r values only support a moderate correlation between weight and hind foot length.
+
+**Summary**
+-	The total count of Juvenile Hare Traps have declined over the time period 1998 – 2012
+-	Male juvenile hares have a higher mean weight than female juvenile hares 
+-	There is a moderate correlation between weight and hind foot length
+
+
+**Citations**: Kielland, K., F.S. Chapin, R.W. Ruess, and Bonanza Creek LTER. 2017. Snowshoe hare physical data in Bonanza Creek Experimental Forest: 1999-Present ver 22. Environmental Data Initiative. https://doi.org/10.6073/pasta/03dce4856d79b91557d8e6ce2cbcdc14
+
+
+
+## End Task 4
+
+

@@ -340,20 +340,13 @@ between weight and hind foot length.
 
 Exploratory data analysis reveals the following initial findings:
 
--   The total juvenile hare trap counts by year steadily declined from
-    the beginning of sampling (1999) to the end (2012).
--   There is a statistically significant difference in means between
-    male and female juvenile snowshoe hare weights, however the effect
-    size is small.
--   The lack of homoscedasticity in the relationship between hare weight
-    (g) and hind foot length (mm) suggest that the regression model may
-    need to include additional predictor variables to explain the
-    performance of the dependent variable.
+-   The total juvenile hare trap counts by year steadily declined from the beginning of sampling (1999) to the end (2012).
+-   There is a statistically significant difference in means between male and female juvenile snowshoe hare weights, however the effect size is small.
+-   The lack of homoscedasticity in the relationship between hare weight (g) and hind foot length (mm) suggest that the regression model may need to include additional predictor variables to explain the performance of the dependent variable.
 
 Next Steps:
 
--   Multiple linear regression to understand the relationship between
-    sex, hind foot length and weight
+-   Multiple linear regression to understand the relationship between sex, hind foot length and weight
 
 ### Citations
 
